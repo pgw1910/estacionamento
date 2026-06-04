@@ -11,4 +11,5 @@ urlpatterns = [
     path('exit/<int:record_id>/', views.register_exit, name='register-exit'),
     path('current/', views.current_vehicles, name='current-vehicles'),
     path('test/', views.test_page, name='test-page'),
+    path('delete-vehicle/<int:record_id>/', views.delete_vehicle_custom, name='delete-vehicle')
 ]
