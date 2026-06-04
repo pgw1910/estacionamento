@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Estacionamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        input, button { padding: 10px; margin: 10px 0; width: 100%; font-size: 16px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; border-radius: 6px; }
+        #resultado, #resultadoSaida { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .sucesso { background: #d4edda; border: 1px solid #28a745; color: #155724; }
+        .erro { background: #f8d7da; border: 1px solid #dc3545; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h2>🚗 Registrar Entrada</h2>
+    <input type="file" id="imagemPlaca" accept="image/*">
+    <button onclick="registrarEntrada()">📷 Ler Placa e Registrar</button>
+    <div id="resultado"></div>
+
+    <hr>
+    <h2>🚪 Registrar Saída</h2>
+    <input type="number" id="recordId" placeholder="ID do registro de entrada">
+    <button onclick="registrarSaida()" style="background:#28a745;">✅ Registrar Saída</button>
+    <div id="resultadoSaida"></div>
+
+    <script>
+        async function registrarEntrada() {
+            const arquivo = document.getElementById('imagemPlaca').files[0];
+            if (!arquivo) { alert('Selecione uma imagem!'); return; }
+            const formData = new FormData();
+            formData.append('image', arquivo);
+            const div = document.getElementById('resultado');
+            div.style.display = 'block';
+            div.innerHTML = '⏳ Lendo placa...';
+            try {
+                const resp = await fetch('/api/entry/', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (resp.ok) {
+                    div.className = 'sucesso';
+                    div.innerHTML = `✅ <strong>Entrada registrada!</strong><br><br>
+                        🚗 Placa: <strong>${data.plate}</strong><br>
+                        📊 Confiança: ${(data.confidence * 100).toFixed(1)}%<br>
+                        🆕 Veículo novo: ${data.vehicle_created ? 'Sim' : 'Não'}<br>
+                        🔑 ID do registro: <strong>${data.record_id}</strong><br><br>
+                        <small>Guarde o ID para registrar a saída!</small>`;
+                } else {
+                    div.className = 'erro';
+                    div.innerHTML = `❌ <strong>Erro:</strong> ${JSON.stringify(data)}`;
+                }
+            } catch(e) {
+                div.className = 'erro';
+                div.innerHTML = `❌ Erro de conexão: ${e.message}`;
+            }
+        }
+
+        async function registrarSaida() {
+            const id = document.getElementById('recordId').value;
+            if (!id) { alert('Informe o ID!'); return; }
+            const div = document.getElementById('resultadoSaida');
+            div.style.display = 'block';
+            div.innerHTML = '⏳ Registrando saída...';
+            try {
+                const resp = await fetch(`/api/exit/${id}/`, { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    div.className = 'sucesso';
+                    div.innerHTML = `✅ <strong>Saída registrada!</strong><br><br>
+                        🚗 Placa: <strong>${data.plate}</strong><br>
+                        ⏱️ Tempo: <strong>${data.duration_minutes} minutos</strong>`;
+                } else {
+                    div.className = 'erro';
+                    div.innerHTML = `❌ Erro: ${JSON.stringify(data)}`;
+                }
+            } catch(e) {
+                div.className = 'erro';
+                div.innerHTML = `❌ Erro: ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

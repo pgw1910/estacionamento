@@ -1,7 +1,7 @@
 node_modules/
 env/
 venv/
+# Python cache files
 __pycache__/
-*.pyc
-*.pyo
-db.sqlite3
+*.py[cod]
+*$py.class
