@@ -1,5 +1,7 @@
 node_modules/
 env/
 venv/
-templates/
-media/
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
