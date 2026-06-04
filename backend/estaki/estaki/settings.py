@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,7 +121,7 @@ STATIC_URL = 'static/'
 
 # Media files (imagens das placas)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Token do Plate Recognizer
-PLATE_RECOGNIZER_TOKEN = '702aaa3277bfde663985695c2d603b9600bf4daf'
+PLATE_RECOGNIZER_TOKEN = '131329a66223bd5034df891d874c80dff8c19f50'

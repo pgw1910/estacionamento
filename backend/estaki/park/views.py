@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django.utils import timezone
+from django.shortcuts import render
 
 from .models import Vehicle, ParkingRecord
 from .serializers import VehicleSerializer, ParkingRecordSerializer, PlateUploadSerializer
@@ -22,8 +23,8 @@ def register_entry(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     image = serializer.validated_data['image']
-
     result = read_plate(image)
+
     if not result:
         return Response(
             {"error": "Não foi possível detectar a placa na imagem."},
@@ -33,7 +34,6 @@ def register_entry(request):
     plate = result['plate']
     vehicle, created = Vehicle.objects.get_or_create(plate=plate)
 
-    # Verifica se já está dentro
     open_record = ParkingRecord.objects.filter(vehicle=vehicle, status='in').first()
     if open_record:
         return Response(
@@ -89,3 +89,7 @@ def current_vehicles(request):
     records = ParkingRecord.objects.filter(status='in').select_related('vehicle')
     serializer = ParkingRecordSerializer(records, many=True)
     return Response(serializer.data)
+
+
+def test_page(request):
+    return render(request, 'park/test.html')
