@@ -4,14 +4,19 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django.utils import timezone
 
-from .models import Vehicle, ParkingRecord
-from .serializers import VehicleSerializer, ParkingRecordSerializer, PlateUploadSerializer
+from .models import Vehicle, ParkingRecord, Usuario
+from .serializers import VehicleSerializer, ParkingRecordSerializer, PlateUploadSerializer, UsuarioSerializer
 from .service.plate_recognizer import read_plate
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
+
+class UsuarioViewSet(viewsets.ModelViewSet):
+    queryset = Usuario.objects.all()
+    serializer_class = UsuarioSerializer
+
 
 
 @api_view(['POST'])

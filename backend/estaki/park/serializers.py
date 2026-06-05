@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Vehicle, ParkingRecord
+from .models import Vehicle, ParkingRecord, Usuario
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -22,3 +22,8 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
 
 class PlateUploadSerializer(serializers.Serializer):
     image = serializers.ImageField()
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = ['id', 'nome', 'matricula', 'telefone']

@@ -28,3 +28,11 @@ class ParkingRecord(models.Model):
 
     def __str__(self):
         return f"{self.vehicle.plate} — {self.status}"
+
+class Usuario(models.Model):
+    nome = models.CharField(max_length=100)
+    matricula = models.CharField(max_length=10, unique=True)
+    telefone = models.CharField(max_length=11)
+
+    def __str__(self):
+        return f"{self.nome} — {self.matricula}"

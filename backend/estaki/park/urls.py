@@ -4,6 +4,7 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'vehicles', views.VehicleViewSet)
+router.register(r'usuarios', views.UsuarioViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
