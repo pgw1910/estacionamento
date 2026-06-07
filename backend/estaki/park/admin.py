@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Vehicle, ParkingRecord
+from .models import Vehicle, ParkingRecord, Usuario
 
 
 @admin.register(Vehicle)
@@ -13,3 +13,8 @@ class ParkingRecordAdmin(admin.ModelAdmin):
     list_display = ['vehicle', 'status', 'entry_time', 'exit_time', 'confidence', 'raw_plate_detected']
     list_filter = ['status']
     readonly_fields = ['entry_time', 'confidence', 'raw_plate_detected']
+
+@admin.register(Usuario)
+class UsuarioAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'matricula', 'telefone']
+    search_fields = ['nome', 'matricula']

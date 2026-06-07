@@ -2,17 +2,32 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+from rest_framework.response import Response
 from django.utils import timezone
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Q
 
-from .models import Vehicle, ParkingRecord
-from .serializers import VehicleSerializer, ParkingRecordSerializer, PlateUploadSerializer
+from .models import Vehicle, ParkingRecord, Usuario, ParkingConfig
+from .serializers import (
+    VehicleSerializer, ParkingRecordSerializer,
+    PlateUploadSerializer, UsuarioSerializer, ParkingConfigSerializer
+)
 from .service.plate_recognizer import read_plate
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
+
+
+class UsuarioViewSet(viewsets.ModelViewSet):
+    queryset = Usuario.objects.all()
+    serializer_class = UsuarioSerializer
+
+
+class ParkingConfigViewSet(viewsets.ModelViewSet):
+    queryset = ParkingConfig.objects.all()
+    serializer_class = ParkingConfigSerializer
 
 
 @api_view(['POST'])
@@ -23,8 +38,20 @@ def register_entry(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     image = serializer.validated_data['image']
-    result = read_plate(image)
+    owner_name = serializer.validated_data.get('owner_name', '')
+    vehicle_type = serializer.validated_data.get('vehicle_type', 'car')
 
+    # Verifica limite máximo
+    config = ParkingConfig.objects.first()
+    if config:
+        current_count = ParkingRecord.objects.filter(status='in').count()
+        if current_count >= config.max_vehicles:
+            return Response(
+                {"error": f"Estacionamento lotado! Limite de {config.max_vehicles} vagas atingido."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    result = read_plate(image)
     if not result:
         return Response(
             {"error": "Não foi possível detectar a placa na imagem."},
@@ -33,6 +60,12 @@ def register_entry(request):
 
     plate = result['plate']
     vehicle, created = Vehicle.objects.get_or_create(plate=plate)
+
+    if owner_name:
+        vehicle.owner_name = owner_name
+    if vehicle_type:
+        vehicle.vehicle_type = vehicle_type
+    vehicle.save()
 
     open_record = ParkingRecord.objects.filter(vehicle=vehicle, status='in').first()
     if open_record:
@@ -53,6 +86,8 @@ def register_entry(request):
     return Response({
         "message": "Entrada registrada com sucesso.",
         "plate": plate,
+        "owner_name": vehicle.owner_name,
+        "vehicle_type": vehicle.vehicle_type,
         "confidence": result['confidence'],
         "vehicle_created": created,
         "record_id": record.id,
@@ -73,14 +108,14 @@ def register_exit(request, record_id):
     record.exit_time = timezone.now()
     record.save()
 
-    minutes = int((record.exit_time - record.entry_time).total_seconds() / 60)
-
     return Response({
         "message": "Saída registrada.",
         "plate": record.vehicle.plate,
+        "owner_name": record.vehicle.owner_name,
+        "vehicle_type": record.vehicle.vehicle_type,
         "entry_time": record.entry_time,
         "exit_time": record.exit_time,
-        "duration_minutes": minutes,
+        "duration_minutes": record.duration_minutes(),
     })
 
 
@@ -88,30 +123,63 @@ def register_exit(request, record_id):
 def current_vehicles(request):
     records = ParkingRecord.objects.filter(status='in').select_related('vehicle')
     serializer = ParkingRecordSerializer(records, many=True)
-    return Response(serializer.data)
+    return Response({
+        "total": records.count(),
+        "vehicles": serializer.data
+    })
+
+
+@api_view(['GET'])
+def history(request):
+    records = ParkingRecord.objects.select_related('vehicle').order_by('-entry_time')
+
+    plate = request.query_params.get('plate')
+    date = request.query_params.get('date')
+    start = request.query_params.get('start')
+    end = request.query_params.get('end')
+    search = request.query_params.get('search')
+
+    if plate:
+        records = records.filter(vehicle__plate__icontains=plate)
+    if date:
+        records = records.filter(entry_time__date=date)
+    if start:
+        records = records.filter(entry_time__date__gte=start)
+    if end:
+        records = records.filter(entry_time__date__lte=end)
+    if search:
+        records = records.filter(
+            Q(vehicle__plate__icontains=search) |
+            Q(vehicle__owner_name__icontains=search)
+        )
+
+    serializer = ParkingRecordSerializer(records, many=True)
+    return Response({
+        "total": records.count(),
+        "records": serializer.data
+    })
+
+
+@api_view(['GET'])
+def parking_status(request):
+    config = ParkingConfig.objects.first()
+    current = ParkingRecord.objects.filter(status='in').count()
+    max_v = config.max_vehicles if config else None
+
+    return Response({
+        "current_vehicles": current,
+        "max_vehicles": max_v,
+        "available_spots": (max_v - current) if max_v else None,
+        "is_full": (current >= max_v) if max_v else False,
+    })
+
+
+@api_view(['DELETE'])
+def delete_vehicle_custom(request, record_id):
+    vehicle = get_object_or_404(Vehicle, id=record_id)
+    vehicle.delete()
+    return Response({"message": "Veículo excluído com sucesso."}, status=status.HTTP_200_OK)
 
 
 def test_page(request):
     return render(request, 'park/test.html')
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from .models import Vehicle # ou ParkingRecord, dependendo do que quer deletar
-
-@api_view(['DELETE'])
-def delete_vehicle_custom(request, record_id):
-    # 1. Tenta encontrar o registro no banco. Se não achar, já retorna erro 404.
-    vehicle = get_object_or_404(Vehicle, id=record_id)
-    
-    # 2. Deleta o registro para sempre
-    vehicle.delete()
-    
-    # 3. Retorna uma resposta de sucesso. 
-    # O status 204 (No Content) é o padrão oficial de APIs para "Deletado com sucesso"
-    return Response(status=status.HTTP_204_NO_CONTENT)
-
-    # DICA: Se o seu frontend precisa de uma mensagem JSON de confirmação,
-    # você pode trocar a linha de cima por esta abaixo:
-    # return Response({"message": "Registro excluído com sucesso!"}, status=status.HTTP_200_OK)
