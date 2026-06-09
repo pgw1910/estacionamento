@@ -127,7 +127,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Token do Plate Recognizer
-PLATE_RECOGNIZER_TOKEN = '131329a66223bd5034df891d874c80dff8c19f50'
+PLATE_RECOGNIZER_TOKEN = 'cd848cbf0bf61c844591e90341bd9c40a95bd8ed'
 
 # REST Framework
 REST_FRAMEWORK = {

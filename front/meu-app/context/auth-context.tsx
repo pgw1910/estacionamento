@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.15.60:8000';
+const API_URL = 'http://172.19.7.226:8000';
 
 const TOKEN_KEY = 'estaki_token';
 const REFRESH_KEY = 'estaki_refresh';
