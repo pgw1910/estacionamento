@@ -15,5 +15,6 @@ urlpatterns = [
     path('history/', views.history, name='history'),
     path('status/', views.parking_status, name='parking-status'),
     path('delete-vehicle/<int:record_id>/', views.delete_vehicle_custom, name='delete-vehicle'),
+    path('me/', views.me, name='me'),
     path('test/', views.test_page, name='test-page'),
 ]

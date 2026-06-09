@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404
@@ -59,13 +59,23 @@ def register_entry(request):
         )
 
     plate = result['plate']
-    vehicle, created = Vehicle.objects.get_or_create(plate=plate)
 
-    if owner_name:
-        vehicle.owner_name = owner_name
-    if vehicle_type:
-        vehicle.vehicle_type = vehicle_type
-    vehicle.save()
+    # Apenas veículos já cadastrados podem entrar
+    try:
+        vehicle = Vehicle.objects.get(plate=plate)
+    except Vehicle.DoesNotExist:
+        return Response(
+            {
+                "error": f"Veículo com placa '{plate}' não está cadastrado no sistema.",
+                "plate": plate,
+                "confidence": result['confidence'],
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    created = False
+
+    # NÃO sobrescreve o vehicle_type — usa sempre o cadastrado no banco/admin
 
     open_record = ParkingRecord.objects.filter(vehicle=vehicle, status='in').first()
     if open_record:
@@ -171,6 +181,31 @@ def parking_status(request):
         "max_vehicles": max_v,
         "available_spots": (max_v - current) if max_v else None,
         "is_full": (current >= max_v) if max_v else False,
+    })
+
+
+@api_view(['GET'])
+def me(request):
+    user = request.user
+    telefone = ''
+    matricula = ''
+    nome = f"{user.first_name} {user.last_name}".strip() or user.username
+
+    try:
+        perfil = user.usuario
+        telefone = perfil.telefone or ''
+        matricula = perfil.matricula or ''
+        if perfil.nome:
+            nome = perfil.nome
+    except Exception:
+        pass
+
+    return Response({
+        'username': user.username,
+        'full_name': nome,
+        'email': user.email,
+        'telefone': telefone,
+        'matricula': matricula,
     })
 
 

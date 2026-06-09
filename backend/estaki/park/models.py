@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class ParkingConfig(models.Model):
@@ -23,6 +24,10 @@ class Vehicle(models.Model):
     vehicle_type = models.CharField(max_length=10, choices=VEHICLE_TYPES, default='car')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = 'Veículo'
+        verbose_name_plural = 'Veículos'
+
     def __str__(self):
         return f"{self.plate} - {self.owner_name}"
 
@@ -43,6 +48,10 @@ class ParkingRecord(models.Model):
     raw_plate_detected = models.CharField(max_length=20, blank=True)
     confidence = models.FloatField(default=0.0)
 
+    class Meta:
+        verbose_name = 'Histórico de Veículo'
+        verbose_name_plural = 'Histórico de Veículos'
+
     def duration_minutes(self):
         if self.exit_time:
             return int((self.exit_time - self.entry_time).total_seconds() / 60)
@@ -53,6 +62,7 @@ class ParkingRecord(models.Model):
 
 
 class Usuario(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='usuario')
     nome = models.CharField(max_length=100)
     matricula = models.CharField(max_length=10, unique=True)
     telefone = models.CharField(max_length=11)
